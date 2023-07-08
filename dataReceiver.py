@@ -3,28 +3,6 @@ import time
 import serial.tools.list_ports
 import csv
 
-'''
-import serial
-ports = serial.tools.list_ports.comports()
-
-for i,port in enumerate(ports): 
-    print(str(i) + ': ' + port.device)
-# Change "4" to ESP32 bluetooth port
-port = ports[4].device
-
-comm_rate = 115200 #baud
-fname = "data.csv" #location
-
-#Begin communication
-ser = serial.Serial(port, comm_rate)
-
-#optional
-ser.write(bytes('Hi', 'utf-8'))
-
-file = open(fname, "a")
-getData=ser.readline()
-dataString = getData.decode('utf-8')[:-2]
-'''
 
 # Set up the Bluetooth serial connection
 # Replace '/dev/rfcomm0' with the appropriate serial port on your system
@@ -65,5 +43,7 @@ while True:
         time.sleep(0.1)  # Small delay before checking for new data
     except KeyboardInterrupt:
         # write all the data to csv file
-        writer.close()
-        print('Data was saved')
+
+        break
+writer.close()
+print('Data was saved')

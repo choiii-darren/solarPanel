@@ -11,8 +11,8 @@ const int photoresistorPin1 = 25; // analog input pin for the first photoresisto
 const int photoresistorPin2 = 27; // analog input pin for the second photoresistor
 
 // Threshold voltage difference (customize as needed)
-float thresholdA = 2.0; // voltage difference for motor to start turning
-float thresholdB = 1.0; // voltage difference for motor to stop turning
+float thresholdA = 1.5; // voltage difference for motor to start turning
+float thresholdB = .5;  // voltage difference for motor to stop turning
 
 // Pin numbers for the stepper motor driver
 const int motorPin1 = 2; // step pin
@@ -24,7 +24,8 @@ const int currentPin = 17;
 
 // for the transmitter callback
 bool cong = false;
-long start = 0;
+long dataMillis = 0;
+long servoMillis = 0;
 
 // Initialize the stepper library
 AccelStepper stepper = AccelStepper(AccelStepper::DRIVER, motorPin1, motorPin2);
@@ -85,6 +86,29 @@ void setup()
 
 void loop()
 {
+  if (millis() - servoMillis >= 2700000) // runs the moving function every 45 mins
+  {
+    servoMove();
+  }
+  // reports data gathered every minute
+  if (millis() - dataMillis >= 60000)
+  {
+    // read from ina219 power collector, voltage, current and transmit it
+    float voltage = digitalRead(voltagePin) * (5.0 / 1023.0);
+    float current = digitalRead(currentPin) * (5.0 / 1023.0);
+    if (!cong)
+    {
+      if (!sendDataBlueTooth(voltage, current))
+      {
+        Serial.println('Failed to transmit data');
+      };
+      dataMillis = millis();
+    }
+  }
+}
+
+void servoMove()
+{
   // Read the voltage from both photoresistors
   float voltage1 = analogRead(photoresistorPin1) * (5.0 / 1023.0);
   float voltage2 = analogRead(photoresistorPin2) * (5.0 / 1023.0);
@@ -95,11 +119,11 @@ void loop()
   // If the voltage difference is above thresholdA, start the motor
   if (voltageDiff >= thresholdA)
   {
-    stepper.move(1); // change direction if needed
+    stepper.move(1); // this goes clockwise, when we wire the pins, gotta make sure the one on the right of the motor is pin 25
   }
   else if (voltageDiff <= thresholdA * -1)
   {
-    stepper.move(-1);
+    stepper.move(-1); // this goes counter clockwise, make sure the photoresistor on the left is pin 27
   }
   // If the voltage difference is below thresholdB, stop the motor
   else if (voltageDiff <= thresholdB || voltageDiff >= thresholdB * -1)
@@ -107,26 +131,11 @@ void loop()
     stepper.stop();
   }
 
-  // If the motor has steps to make, make one
+  // TODO: test if this actually works, since this doesn't make much sense when you already have the .move function
+  //  If the motor has steps to make, make one
   if (stepper.distanceToGo() != 0)
   {
     stepper.run();
-  }
-
-  // reports data gathered every 60 seconds
-  if (millis() - start >= 60000)
-  {
-    // read from ina219 power collector, voltage, current and transmit it
-    float voltage = digitalRead(voltagePin) * (5.0/1023.0);
-    float current = digitalRead(currentPin) * (5.0/1023.0);
-    if (!cong)
-    {
-      if (!sendDataBlueTooth(voltage, current))
-      {
-        Serial.println('Failed to transmit data');
-      };
-      start = millis();
-    }
   }
 }
 
