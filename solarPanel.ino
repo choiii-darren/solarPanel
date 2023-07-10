@@ -147,12 +147,10 @@ void servoMove()
   Serial.print(voltage1);
   Serial.print(", ");
   Serial.println(voltage2);
+  float voltageDiff = voltage1 - voltage2;
 
   
   while (abs(voltageDiff) >= thresholdA) {
-
-    // Calculate the difference in voltages
-    float voltageDiff = voltage1 - voltage2;
 
     // If the voltage difference is above thresholdA, start the motor
     if (voltageDiff >= thresholdA)
@@ -169,6 +167,7 @@ void servoMove()
 
     voltage1 = analogRead(photoresistorPin1);
     voltage2 = analogRead(photoresistorPin2);
+    voltageDiff = voltage1 - voltage2;
     Serial.print("Photoresistors: ");
     Serial.print(voltage1);
     Serial.print(", ");
