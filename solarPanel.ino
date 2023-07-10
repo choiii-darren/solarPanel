@@ -113,29 +113,16 @@ void loop()
   if (millis() - dataMillis >= 1000)
   {
     // read from ina219 power collector, voltage, current and transmit it
-    getPanelData();
-    /*if (!cong)
+    int *result = getPanelData();
+    if (!cong)
     {
-      if (!sendDataBlueTooth(voltage, current))
+      if (!sendDataBlueTooth(*result, *result+1))
       {
         Serial.println('Failed to transmit data');
       };
       dataMillis = millis();
-    }*/
+    }
   }
-}
-
-void getPanelData() {
-  digitalWrite(base, LOW);
-  float current = ina219.getCurrent_mA();
-  delay(del);
-  digitalWrite(base, HIGH);
-  float voltage = ina219.getBusVoltage_V();
-  delay(del);;
-  Serial.print("Panel output: ");
-  Serial.print(voltage);
-  Serial.print(", "); 
-  Serial.println(current);
 }
 
 void servoMove()
@@ -147,9 +134,10 @@ void servoMove()
   Serial.print(voltage1);
   Serial.print(", ");
   Serial.println(voltage2);
-  float voltageDiff = voltage1 - voltage2;
 
   
+// Calculate the difference in voltages
+float voltageDiff = voltage1 - voltage2;
   while (abs(voltageDiff) >= thresholdA) {
 
     // If the voltage difference is above thresholdA, start the motor
@@ -167,13 +155,13 @@ void servoMove()
 
     voltage1 = analogRead(photoresistorPin1);
     voltage2 = analogRead(photoresistorPin2);
-    voltageDiff = voltage1 - voltage2;
     Serial.print("Photoresistors: ");
     Serial.print(voltage1);
     Serial.print(", ");
     Serial.println(voltage2);
 
-    getPanelData();
+    voltageDiff = voltage1 - voltage2;
+    int *result = getPanelData();
   }
 
   /*
@@ -184,6 +172,21 @@ void servoMove()
     stepper.run();
   }
   */
+}
+
+int * getPanelData() {
+  digitalWrite(base, LOW);
+  float current = ina219.getCurrent_mA();
+  delay(del);
+  digitalWrite(base, HIGH);
+  float voltage = ina219.getBusVoltage_V();
+  delay(del);;
+  Serial.print("Panel output: ");
+  Serial.print(voltage);
+  Serial.print(", "); 
+  Serial.println(current);
+  int array[] = {voltage, current};
+  return array;
 }
 
 bool sendDataBlueTooth(int voltage, int current)
