@@ -42,8 +42,7 @@ while True:
 
         time.sleep(0.1)  # Small delay before checking for new data
     except KeyboardInterrupt:
-        # write all the data to csv file
-
         break
+# write all the data to csv file
 writer.close()
 print('Data was saved')
