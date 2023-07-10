@@ -116,7 +116,7 @@ void loop()
     int *result = getPanelData();
     if (!cong)
     {
-      if (!sendDataBlueTooth(*result, *result+1))
+      if (!sendDataBlueTooth(*result, *result+1)) //voltage current
       {
         Serial.println('Failed to transmit data');
       };
