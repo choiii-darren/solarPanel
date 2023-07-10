@@ -113,16 +113,7 @@ void loop()
   if (millis() - dataMillis >= 1000)
   {
     // read from ina219 power collector, voltage, current and transmit it
-    digitalWrite(base, LOW);
-    float current = ina219.getCurrent_mA();
-    delay(del);
-    digitalWrite(base, HIGH);
-    float voltage = ina219.getBusVoltage_V();
-    delay(del);;
-    Serial.print("Panel output: ");
-    Serial.print(voltage);
-    Serial.print(", "); 
-    Serial.println(current);
+    getPanelData();
     /*if (!cong)
     {
       if (!sendDataBlueTooth(voltage, current))
@@ -132,6 +123,19 @@ void loop()
       dataMillis = millis();
     }*/
   }
+}
+
+void getPanelData() {
+  digitalWrite(base, LOW);
+  float current = ina219.getCurrent_mA();
+  delay(del);
+  digitalWrite(base, HIGH);
+  float voltage = ina219.getBusVoltage_V();
+  delay(del);;
+  Serial.print("Panel output: ");
+  Serial.print(voltage);
+  Serial.print(", "); 
+  Serial.println(current);
 }
 
 void servoMove()
@@ -144,10 +148,12 @@ void servoMove()
   Serial.print(", ");
   Serial.println(voltage2);
 
-  // Calculate the difference in voltages
-  float voltageDiff = voltage1 - voltage2;
   
   while (abs(voltageDiff) >= thresholdA) {
+
+    // Calculate the difference in voltages
+    float voltageDiff = voltage1 - voltage2;
+
     // If the voltage difference is above thresholdA, start the motor
     if (voltageDiff >= thresholdA)
     {
@@ -167,9 +173,8 @@ void servoMove()
     Serial.print(voltage1);
     Serial.print(", ");
     Serial.println(voltage2);
-  
-    // Calculate the difference in voltages
-    voltageDiff = voltage1 - voltage2;
+
+    getPanelData();
   }
 
   /*
