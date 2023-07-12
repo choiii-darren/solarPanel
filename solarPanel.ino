@@ -83,7 +83,7 @@ void setup()
   Wire.begin();
   /*
   // Start the Bluetooth module
-  transmitter.begin('bluetoothGroup23');
+  transmitter.begin("bluetoothGroup23");
   // if receiver is not ready yet
   while (!transmitter.available())
   {
@@ -91,7 +91,7 @@ void setup()
   }
   if (transmitter.available())
   {
-    Serial.println('bluetooth ready');
+    Serial.println("bluetooth ready");
   }
 
   transmitter.register_callback(BT_EventHandler);
