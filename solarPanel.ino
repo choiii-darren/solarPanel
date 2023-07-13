@@ -1,10 +1,8 @@
 #include <Wire.h>
 #include <AccelStepper.h>
 #include <Adafruit_INA219.h>
-#include <BluetoothSerial.h>
 
 Adafruit_INA219 ina219;
-BluetoothSerial transmitter;
 
 // Assign the appropriate pin numbers
 const int photoresistorPin1 = 15; // analog input pin for the first photoresistor
@@ -26,34 +24,12 @@ float freq = 2; // Hz
 // Delay after changing state of transistor
 int del = 2;
 
-// for the transmitter callback
-bool cong = false;
 long dataMillis = 0;
 long servoMillis = 0;
 
 // Initialize the stepper library
 AccelStepper stepper(AccelStepper::FULL4WIRE, motorPin1, motorPin3, motorPin2, motorPin4);
 
-void BT_EventHandler(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
-{
-  if (event == ESP_SPP_START_EVT)
-  {
-    Serial.println("Initialized SPP");
-  }
-  else if (event == ESP_SPP_SRV_OPEN_EVT)
-  {
-    Serial.println("Client connected");
-  }
-  else if (event == ESP_SPP_CLOSE_EVT)
-  {
-    Serial.println("Client disconnected");
-  }
-  else if (event == ESP_SPP_CONG_EVT)
-  {
-    cong = true;
-    Serial.println("Client not listening");
-  }
-}
 
 void setup()
 {
@@ -81,21 +57,7 @@ void setup()
   Serial.println("Measuring voltage and current with INA219 ...");
   // Start the I2C interface
   Wire.begin();
-  /*
-  // Start the Bluetooth module
-  transmitter.begin('bluetoothGroup23');
-  // if receiver is not ready yet
-  while (!transmitter.available())
-  {
-    delay(50);
-  }
-  if (transmitter.available())
-  {
-    Serial.println('bluetooth ready');
-  }
-
-  transmitter.register_callback(BT_EventHandler);
-  */
+  
 
   // Set the maximum speed and acceleration (adjust as needed)
   stepper.setMaxSpeed(100);
@@ -108,20 +70,20 @@ void loop()
   if (millis() - servoMillis >= 10000) // runs the moving function every 45 mins
   {
     servoMove();
+    servoMillis = millis();
   }
   // reports data gathered every minute
   if (millis() - dataMillis >= 1000)
   {
     // read from ina219 power collector, voltage, current and transmit it
-    int *result = getPanelData();
-    if (!cong)
+    char result[50];
+    getPanelData(result);
+    if (!sendData(result)) // voltage, current
     {
-      if (!sendDataBlueTooth(*result, *result+1)) //voltage, current
-      {
-        Serial.println('Failed to transmit data');
-      };
-      dataMillis = millis();
-    }
+      //Serial.println('Failed to transmit data');
+    };
+
+    dataMillis = millis();
   }
 }
 
@@ -130,10 +92,10 @@ void servoMove()
   // Read the voltage from both photoresistors
   float voltage1 = analogRead(photoresistorPin1);
   float voltage2 = analogRead(photoresistorPin2);
-  Serial.print("Photoresistors: ");
-  Serial.print(voltage1);
-  Serial.print(", ");
-  Serial.println(voltage2);
+  // Serial.print("Photoresistors: ");
+  // Serial.print(voltage1);
+  // Serial.print(", ");
+  // Serial.println(voltage2);
 
   
 // Calculate the difference in voltages
@@ -155,47 +117,34 @@ float voltageDiff = voltage1 - voltage2;
 
     voltage1 = analogRead(photoresistorPin1);
     voltage2 = analogRead(photoresistorPin2);
-    Serial.print("Photoresistors: ");
-    Serial.print(voltage1);
-    Serial.print(", ");
-    Serial.println(voltage2);
+    // Serial.print("Photoresistors: ");
+    // Serial.print(voltage1);
+    // Serial.print(", ");
+    // Serial.println(voltage2);
 
     voltageDiff = voltage1 - voltage2;
-    int *result = getPanelData();
-  }
-
-  /*
-  // TODO: test if this actually works, since this doesn't make much sense when you already have the .move function
-  //  If the motor has steps to make, make one
-  if (stepper.distanceToGo() != 0)
-  {
-    stepper.run();
-  }
-  */
+    char result[50]; 
+    getPanelData(result);
+     if (!sendData(result)) // voltage, current
+    {
+      //Serial.println('Failed to transmit data');
+    };    
+    }
 }
 
-int * getPanelData() {
+void getPanelData(char *result) {
   digitalWrite(base, LOW);
   float current = ina219.getCurrent_mA();
   delay(del);
   digitalWrite(base, HIGH);
   float voltage = ina219.getBusVoltage_V();
-  delay(del);;
-  Serial.print("Panel output: ");
-  Serial.print(voltage);
-  Serial.print(", "); 
-  Serial.println(current);
-  int array[] = {voltage, current};
-  return array;
+  delay(del);
+
+  sprintf(result, "&VOLTAGE=%f,&CURRENT=%f", voltage, current);
 }
 
-bool sendDataBlueTooth(int voltage, int current)
+bool sendData(char* string)
 {
-  if (transmitter.available())
-  {
-    String dataString = "&VOLTAGE=" + String(voltage) + "," + "&CURRENT=" + String(current);
-    transmitter.println(dataString);
-    return true;
-  }
-  return false;
+   Serial.println(string);
+   return true;
 }
