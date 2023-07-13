@@ -57,7 +57,21 @@ void setup()
   Serial.println("Measuring voltage and current with INA219 ...");
   // Start the I2C interface
   Wire.begin();
-  
+  /*
+  // Start the Bluetooth module
+  transmitter.begin("bluetoothGroup23");
+  // if receiver is not ready yet
+  while (!transmitter.available())
+  {
+    delay(50);
+  }
+  if (transmitter.available())
+  {
+    Serial.println("bluetooth ready");
+  }
+
+  transmitter.register_callback(BT_EventHandler);
+  */
 
   // Set the maximum speed and acceleration (adjust as needed)
   stepper.setMaxSpeed(100);
