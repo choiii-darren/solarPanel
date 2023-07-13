@@ -8,12 +8,12 @@ from datetime import datetime
 # Set up the Bluetooth serial connection
 # Replace '/dev/rfcomm0' with the appropriate serial port on your system
 ports = serial.tools.list_ports.comports()
-port = ports[4].device
+# port = ports[4].device
 
-ser = serial.Serial("COM3", 115200)
+ser = serial.Serial("COM4", 115200)
 
 # open csv file
-writer = csv.writer(open("solarData.csv", 'w', newLine=''))
+writer = csv.writer(open("solarData.csv", 'w'))
 writer.writerow(['Time','Voltage', 'Current'])
 
 while True:
@@ -21,7 +21,7 @@ while True:
         if ser.in_waiting > 0:
             # Read the incoming data
             data = ser.readline().decode().strip()
-            print("Received data:", data)
+            # print("Received data:", data)
 
             # Parse the received data
             values = data.split(",")
@@ -29,11 +29,12 @@ while True:
             for value in values:
                 key, value = value.split("=")
                 sensor_data[key] = value
-            time = datetime.now()
-            currentTime = time.strftime("%H:%M:%S")
+            print(sensor_data)
+            now = datetime.now()
+            currentTime = now.strftime("%H:%M:%S")
             # Process the sensor data as needed
-            voltage = float(sensor_data.get("VOLTAGE", 0.0))
-            current = float(sensor_data.get("CURRENT", 0.0))
+            voltage = float(sensor_data.get("&VOLTAGE", 0.0))
+            current = float(sensor_data.get("&CURRENT", 0.0))
 
             # write to csv file
             writer.writerow([currentTime, voltage, current])

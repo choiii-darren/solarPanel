@@ -9,7 +9,8 @@ const int photoresistorPin1 = 15; // analog input pin for the first photoresisto
 const int photoresistorPin2 = 4; // analog input pin for the second photoresistor
 
 // Threshold voltage difference (customize as needed)
-float thresholdA = 100; // voltage difference for motor to start turning
+float thresholdA = 40; // voltage difference for motor to start turning
+float normalizationDifference = 130;
 
 // Pin numbers for the stepper motor driver
 const int motorPin1 = 23;
@@ -105,7 +106,7 @@ void servoMove()
 {
   // Read the voltage from both photoresistors
   float voltage1 = analogRead(photoresistorPin1);
-  float voltage2 = analogRead(photoresistorPin2);
+  float voltage2 = analogRead(photoresistorPin2) + normalizationDifference;
   // Serial.print("Photoresistors: ");
   // Serial.print(voltage1);
   // Serial.print(", ");
@@ -119,12 +120,12 @@ float voltageDiff = voltage1 - voltage2;
     // If the voltage difference is above thresholdA, start the motor
     if (voltageDiff >= thresholdA)
     {
-      Serial.println("Moving clockwise");
+      // Serial.println("Moving clockwise");
       stepper.moveTo(stepper.currentPosition() + 5); // this goes clockwise, when we wire the pins, gotta make sure the one on the right of the motor is pin 25
     }
     else if (voltageDiff <= thresholdA * -1)
     {
-      Serial.println("Moving counter-clockwise");
+      // Serial.println("Moving counter-clockwise");
       stepper.moveTo(stepper.currentPosition() - 5); // this goes counter clockwise, make sure the photoresistor on the left is pin 27
     }
     stepper.run();
