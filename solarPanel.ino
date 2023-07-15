@@ -5,21 +5,21 @@
 Adafruit_INA219 ina219;
 
 // Assign the appropriate pin numbers
-const int photoresistorPin1 = 15; // analog input pin for the first photoresistor
-const int photoresistorPin2 = 4; // analog input pin for the second photoresistor
+const int photoresistorPin1 = A0; // analog input pin for the first photoresistor
+const int photoresistorPin2 = A1; // analog input pin for the second photoresistor
 
 // Threshold voltage difference (customize as needed)
-float thresholdA = 40; // voltage difference for motor to start turning
-float normalizationDifference = 130;
+float thresholdA = 30; // voltage difference for motor to start turning
+float normalizationDifference = 40;//130;
 
 // Pin numbers for the stepper motor driver
-const int motorPin1 = 23;
-const int motorPin2 = 19;
-const int motorPin3 = 18;
-const int motorPin4 = 17;
+const int motorPin1 = 13;
+const int motorPin2 = 12;
+const int motorPin3 = 11;
+const int motorPin4 = 10;
 
 // Pin numbers for reading data from ina219
-const int base = 16;
+const int base = 1;
 
 float freq = 2; // Hz
 // Delay after changing state of transistor
@@ -35,6 +35,8 @@ AccelStepper stepper(AccelStepper::FULL4WIRE, motorPin1, motorPin3, motorPin2, m
 void setup()
 {
   pinMode(base, OUTPUT);
+  pinMode(photoresistorPin1, INPUT);
+  pinMode(photoresistorPin2, INPUT);
   Serial.begin(115200);
   while (!Serial) {
       // will pause Zero, Leonardo, etc until serial console opens
@@ -82,7 +84,7 @@ void setup()
 
 void loop()
 {
-  if (millis() - servoMillis >= 10000) // runs the moving function every 45 mins
+  if (millis() - servoMillis >= 1000) // runs the moving function every 45 mins
   {
     servoMove();
     servoMillis = millis();
@@ -104,13 +106,14 @@ void loop()
 
 void servoMove()
 {
+  Serial.println("Running servoMove");
   // Read the voltage from both photoresistors
   float voltage1 = analogRead(photoresistorPin1);
   float voltage2 = analogRead(photoresistorPin2) + normalizationDifference;
-  // Serial.print("Photoresistors: ");
-  // Serial.print(voltage1);
-  // Serial.print(", ");
-  // Serial.println(voltage2);
+  Serial.print("Photoresistors: ");
+  Serial.print(voltage1);
+  Serial.print(", ");
+  Serial.println(voltage2);
 
   
 // Calculate the difference in voltages
@@ -120,22 +123,22 @@ float voltageDiff = voltage1 - voltage2;
     // If the voltage difference is above thresholdA, start the motor
     if (voltageDiff >= thresholdA)
     {
-      // Serial.println("Moving clockwise");
+      Serial.println("Moving clockwise");
       stepper.moveTo(stepper.currentPosition() + 5); // this goes clockwise, when we wire the pins, gotta make sure the one on the right of the motor is pin 25
     }
     else if (voltageDiff <= thresholdA * -1)
     {
-      // Serial.println("Moving counter-clockwise");
+      Serial.println("Moving counter-clockwise");
       stepper.moveTo(stepper.currentPosition() - 5); // this goes counter clockwise, make sure the photoresistor on the left is pin 27
     }
     stepper.run();
 
     voltage1 = analogRead(photoresistorPin1);
-    voltage2 = analogRead(photoresistorPin2);
-    // Serial.print("Photoresistors: ");
-    // Serial.print(voltage1);
-    // Serial.print(", ");
-    // Serial.println(voltage2);
+    voltage2 = analogRead(photoresistorPin2) + normalizationDifference;
+    Serial.print("Photoresistors: ");
+    Serial.print(voltage1);
+    Serial.print(", ");
+    Serial.println(voltage2);
 
     voltageDiff = voltage1 - voltage2;
     char result[50]; 
@@ -148,18 +151,23 @@ float voltageDiff = voltage1 - voltage2;
 }
 
 void getPanelData(char *result) {
+  Serial.println("Running getPanelData");
   digitalWrite(base, LOW);
   float current = ina219.getCurrent_mA();
   delay(del);
   digitalWrite(base, HIGH);
   float voltage = ina219.getBusVoltage_V();
+  Serial.print("Panel Voltage: ");
+  Serial.println(voltage);
+  Serial.print("Panel Current: ");
+  Serial.println(current);
   delay(del);
 
-  sprintf(result, "&VOLTAGE=%f,&CURRENT=%f", voltage, current);
+  //sprintf(result, "&VOLTAGE=%f,&CURRENT=%f", voltage, current);
 }
 
 bool sendData(char* string)
 {
-   Serial.println(string);
+   //Serial.println(string);
    return true;
 }
