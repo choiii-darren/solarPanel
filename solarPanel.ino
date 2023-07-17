@@ -85,13 +85,13 @@ void setup()
 
 void loop()
 {
-  if (millis() - servoMillis >= 120000) // runs the moving function every 15 mins (900000)
+  if (millis() - servoMillis >= 600000) // runs the moving function every 15 mins (900000)
   {
     servoMove();
     servoMillis = millis();
   }
   // reports data gathered every minute
-  if (millis() - dataMillis >= 30000) // 60000
+  if (millis() - dataMillis >= 60000) // 60000
   {
     // read from ina219 power collector, voltage, current and transmit it
     char result[50];
