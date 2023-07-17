@@ -10,7 +10,7 @@ from datetime import datetime
 ports = serial.tools.list_ports.comports()
 # port = ports[4].device
 
-ser = serial.Serial("COM3", 115200)
+ser = serial.Serial("COM5", 115200)
 
 # open csv file
 writer = csv.writer(open("solarData.csv", 'w'))

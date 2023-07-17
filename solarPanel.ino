@@ -9,7 +9,7 @@ const int photoresistorPin1 = A1; // analog input pin for the first photoresisto
 const int photoresistorPin2 = A0; // analog input pin for the second photoresistor
 
 // Threshold voltage difference (customize as needed)
-float thresholdA = 5; // voltage difference for motor to start turning
+float thresholdA = 1; // voltage difference for motor to start turning
 float normalizationDifference = 12;//130;
 
 // Pin numbers for the stepper motor driver
@@ -85,13 +85,13 @@ void setup()
 
 void loop()
 {
-  if (millis() - servoMillis >= 900000) // runs the moving function every 15 mins
+  if (millis() - servoMillis >= 120000) // runs the moving function every 15 mins (900000)
   {
     servoMove();
     servoMillis = millis();
   }
   // reports data gathered every minute
-  if (millis() - dataMillis >= 60000)
+  if (millis() - dataMillis >= 30000) // 60000
   {
     // read from ina219 power collector, voltage, current and transmit it
     char result[50];
@@ -154,6 +154,7 @@ void servoMove()
     };
     */    
   }
+  stepper.stop();
 } 
 
 void getPanelData(char *result) {
@@ -161,21 +162,23 @@ void getPanelData(char *result) {
   digitalWrite(base, LOW);
   delay(del);
   float voltage = ina219.getBusVoltage_V();
+  
   digitalWrite(base, HIGH);
   delay(del);
   float current = ina219.getCurrent_mA();
+  
   delay(del);
+
+  int voltageInt = (int)voltage;
+  int voltageFraction = (voltage - voltageInt) * 100;
+  int currentInt = (int)current;
+  int currentFraction = (current - currentInt) * 100;
   /*
   Serial.print("Panel Voltage: ");
   Serial.println(voltage);
   Serial.print("Panel Current: ");
   Serial.println(current);
   */
-
-  int voltageInt = (int)voltage;
-  int voltageFraction = (voltage - voltageInt) * 100;
-  int currentInt = (int)current;
-  int currentFraction = (current - currentInt) * 100;
 
   sprintf(result, "&VOLTAGE=%d.%02d,&CURRENT=%d.%02d", voltageInt, abs(voltageFraction), currentInt, abs(currentFraction));
 }
