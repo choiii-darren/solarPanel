@@ -91,7 +91,7 @@ void loop()
     servoMillis = millis();
   }
   // reports data gathered every minute
-  if (millis() - dataMillis >= 30000) // 60000
+  if (millis() - dataMillis >= 10000) // 60000
   {
     // read from ina219 power collector, voltage, current and transmit it
     char result[50];
