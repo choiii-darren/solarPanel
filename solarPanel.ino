@@ -1,190 +1,146 @@
+//Include necessary libraries
 #include <Wire.h>
 #include <AccelStepper.h>
 #include <Adafruit_INA219.h>
 
+//Initialize an object for INA219 power sensor
 Adafruit_INA219 ina219;
 
-// Assign the appropriate pin numbers
-const int photoresistorPin1 = A1; // analog input pin for the first photoresistor
-const int photoresistorPin2 = A0; // analog input pin for the second photoresistor
+//Define the pins for photoresistors
+const int photoresistorPin1 = A1;
+const int photoresistorPin2 = A0;
 
-// Threshold voltage difference (customize as needed)
-float thresholdA = 1; // voltage difference for motor to start turning
-float normalizationDifference = 12;//130;
+//Define the threshold for voltage difference
+float thresholdA = 1;
+float normalizationDifference = 12;
 
-// Pin numbers for the stepper motor driver
+//Define the pins for the stepper motor
 const int motorPin1 = 13;
 const int motorPin2 = 12;
 const int motorPin3 = 11;
 const int motorPin4 = 10;
 
-// Pin numbers for reading data from ina219
+//Define the base pin
 const int base = 7;
 
-float freq = 2; // Hz
-// Delay after changing state of transistor
-int del = 1000;
+float freq = 2;
+int del = 200;
 
+//Variables to track time
 long dataMillis = 0;
 long servoMillis = 0;
 
-// Initialize the stepper library
+//Initialize the stepper motor object
 AccelStepper stepper(AccelStepper::FULL4WIRE, motorPin1, motorPin3, motorPin2, motorPin4);
 
-
+//Setup function
 void setup()
 {
+  //Define the pins as Input or Output
   pinMode(base, OUTPUT);
   pinMode(photoresistorPin1, INPUT);
   pinMode(photoresistorPin2, INPUT);
+
+  //Start Serial communication
   Serial.begin(115200);
   while (!Serial) {
-      // will pause Zero, Leonardo, etc until serial console opens
-      delay(1);
+      delay(1); //wait until the serial communication is started
   }
-    
-  //Serial.println("Hello!");
-  
-  // Initialize the INA219.
-  // By default the initialization will use the largest range (32V, 2A).  However
-  // you can call a setCalibration function to change this range (see comments).
-  if (! ina219.begin()) {
-    //Serial.println("Failed to find INA219 chip");
-    while (1) { delay(10); }
+
+  //Start INA219 sensor
+  if (!ina219.begin()) {
+    while (1) { delay(10); } //halt execution if INA219 is not found
   }
-  // To use a slightly lower 32V, 1A range (higher precision on amps):
-  //ina219.setCalibration_32V_1A();
-  // Or to use a lower 16V, 400mA range (higher precision on volts and amps):
   ina219.setCalibration_16V_400mA();
-
-  //Serial.println("Measuring voltage and current with INA219 ...");
-  // Start the I2C interface
+  
   Wire.begin();
-  /*
-  // Start the Bluetooth module
-  transmitter.begin("bluetoothGroup23");
-  // if receiver is not ready yet
-  while (!transmitter.available())
-  {
-    delay(50);
-  }
-  if (transmitter.available())
-  {
-    Serial.println("bluetooth ready");
-  }
-
-  transmitter.register_callback(BT_EventHandler);
-  */
-
-  // Set the maximum speed and acceleration (adjust as needed)
+  
+  //Setup stepper motor
   stepper.setMaxSpeed(100);
   stepper.setAcceleration(20);
   stepper.moveTo(500);
-  servoMove();
+  
+  servoMove(); //Move the servo at the beginning
 }
 
+//Main loop function
 void loop()
 {
-  if (millis() - servoMillis >= 300000) // runs the moving function every 15 mins (900000)
+  //Check if 15 minutes have passed to move the servo
+  if (millis() - servoMillis >= 900000)
   {
     servoMove();
-    servoMillis = millis();
+    servoMillis = millis(); //update the time
   }
-  // reports data gathered every minute
-  if (millis() - dataMillis >= 10000) // 60000
+
+  //Check if 60 seconds have passed to send data
+  if (millis() - dataMillis >= 60000)
   {
-    // read from ina219 power collector, voltage, current and transmit it
     char result[50];
-    getPanelData(result);
-    if (!sendData(result)) // voltage, current
+    getPanelData(result); //get the panel data
+    if (!sendData(result)) //send data
     {
       Serial.println('Failed to transmit data');
     };
-
-    dataMillis = millis();
+    dataMillis = millis(); //update the time
   }
 }
 
+//Function to move the servo
 void servoMove()
 {
-  //Serial.println("Running servoMove");
-  // Read the voltage from both photoresistors
+  //Read voltages from photoresistors
   float voltage1 = analogRead(photoresistorPin1);
   float voltage2 = analogRead(photoresistorPin2) + normalizationDifference;
-  /*
-  Serial.print("Photoresistors: ");
-  Serial.print(voltage1);
-  Serial.print(", ");
-  Serial.println(voltage2);
-  */
-  
-  // Calculate the difference in voltages
-  float voltageDiff = voltage1 - voltage2;
-  while (abs(voltageDiff) >= thresholdA) {
 
-    // If the voltage difference is above thresholdA, start the motor
+  float voltageDiff = voltage1 - voltage2;
+
+  //Keep adjusting the stepper motor position until the voltage difference is below the threshold
+  while (abs(voltageDiff) >= thresholdA) {
     if (voltageDiff >= thresholdA)
     {
-      //Serial.println("Moving clockwise");
-      stepper.moveTo(stepper.currentPosition() + 5); // this goes clockwise, when we wire the pins, gotta make sure the one on the right of the motor is pin 25
+      stepper.moveTo(stepper.currentPosition() + 5); //move stepper clockwise
     }
     else if (voltageDiff <= thresholdA * -1)
     {
-      //Serial.println("Moving counter-clockwise");
-      stepper.moveTo(stepper.currentPosition() - 5); // this goes counter clockwise, make sure the photoresistor on the left is pin 27
+      stepper.moveTo(stepper.currentPosition() - 5); //move stepper counterclockwise
     }
-    stepper.run();
+    stepper.run(); //execute the stepper command
 
+    //Read voltages from photoresistors again
     voltage1 = analogRead(photoresistorPin1);
     voltage2 = analogRead(photoresistorPin2) + normalizationDifference;
 
-    /*
-    Serial.print("Photoresistors: ");
-    Serial.print(voltage1);
-    Serial.print(", ");
-    Serial.println(voltage2);
-    */
-
-    voltageDiff = voltage1 - voltage2;
-    /*char result[50]; 
-    getPanelData(result);
-    if (!sendData(result)) // voltage, current
-    {
-      Serial.println('Failed to transmit data');
-    };
-    */    
+    voltageDiff = voltage1 - voltage2;  
   }
-  stepper.stop();
+  stepper.stop(); //stop the stepper motor
 } 
 
+//Function to get the voltage and current data from the panel
 void getPanelData(char *result) {
-  //Serial.println("Running getPanelData");
   digitalWrite(base, LOW);
   delay(del);
-  float voltage = ina219.getBusVoltage_V();
+  float voltage = ina219.getBusVoltage_V(); //read voltage
   
   digitalWrite(base, HIGH);
   delay(del);
-  float current = ina219.getCurrent_mA();
+  float current = ina219.getCurrent_mA(); //read current
   
   delay(del);
 
+  //Convert voltage and current to int to get integer and fractional part
   int voltageInt = (int)voltage;
   int voltageFraction = (voltage - voltageInt) * 100;
   int currentInt = (int)current;
   int currentFraction = (current - currentInt) * 100;
-  /*
-  Serial.print("Panel Voltage: ");
-  Serial.println(voltage);
-  Serial.print("Panel Current: ");
-  Serial.println(current);
-  */
 
+  //Compose the result string
   sprintf(result, "&VOLTAGE=%d.%02d,&CURRENT=%d.%02d", voltageInt, abs(voltageFraction), currentInt, abs(currentFraction));
 }
 
+//Function to send the data
 bool sendData(char* string)
 {
-   Serial.println(string);
-   return true;
+   Serial.println(string); //Print the data to the serial port
+   return true; //return true if successful
 }
